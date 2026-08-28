@@ -83,6 +83,10 @@ async function carrega() {
         escapa(s.departament) + " / " + escapa(s.subdepartament) + "</div>" +
       "<div>" +
         '<span class="tag">~' + escapa(s.import_aprox) + " €</span> " +
+        (s.disponible !== null
+          ? '<span class="tag' + (s.supera ? " urgent" : "") + '">Partida: ' +
+            escapa(s.disponible.toFixed(2)) + " € disponibles</span> "
+          : "") +
         '<span class="tag">' + (s.online === "Sí" ? "Online" : escapa(s.lloc || "Botiga")) + "</span> " +
         (s.urgent === "Sí" ? '<span class="tag urgent">Urgent</span> ' : "") +
         (s.web_nova === "Sí" ? '<span class="tag">Web nova</span>' : "") +

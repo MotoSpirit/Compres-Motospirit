@@ -236,6 +236,21 @@ button.small { padding: 7px 12px; font-size: 14px; }
 }
 .tag.urgent { background: #fdefec; border-color: #f6cec6; color: var(--accent); }
 
+.saldo {
+  font-size: 14px;
+  color: var(--muted);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: -6px 0 18px;
+}
+.saldo.alerta {
+  background: #fdefec;
+  border-color: #f6cec6;
+  color: var(--accent);
+}
+
 .hidden { display: none !important; }
 
 #gate { text-align: center; padding: 40px 20px; }
