@@ -3,10 +3,10 @@
 // ---------------------------------------------------------------------------
 
 // Client ID d'OAuth que has creat a Google Cloud.
-const CLIENT_ID = "POSA-AQUI-EL-TEU-CLIENT-ID.apps.googleusercontent.com";
+const CLIENT_ID = "1045027365645-f719r5b11t4ooupfn249arbmjodumsd0.apps.googleusercontent.com";
 
 // URL del desplegament de l'Apps Script (acaba amb /exec).
-const SCRIPT_URL = "POSA-AQUI-LA-URL-DEL-APPS-SCRIPT/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznY9NsH4xKw8qTdMaoMticoxz2VxoNUdLTj7R0LF25SVbGob1Leksju5Zbl3CniRtQ_Q/exec";
 
 // ---------------------------------------------------------------------------
 // Departaments i subdepartaments. Editar aquí ho canvia a tots els formularis.
