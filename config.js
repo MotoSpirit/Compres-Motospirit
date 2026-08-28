@@ -6,7 +6,7 @@
 const CLIENT_ID = "1045027365645-f719r5b11t4ooupfn249arbmjodumsd0.apps.googleusercontent.com";
 
 // URL del desplegament de l'Apps Script (acaba amb /exec).
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbznY9NsH4xKw8qTdMaoMticoxz2VxoNUdLTj7R0LF25SVbGob1Leksju5Zbl3CniRtQ_Q/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxm71O3S5MomussP3OaxC7ozSBfjMqM8Vo5GMwsxUmVSZrtDId6VihHEECJM_-md9ofAQ/exec";
 
 // ---------------------------------------------------------------------------
 // Departaments i subdepartaments. Editar aquí ho canvia a tots els formularis.
