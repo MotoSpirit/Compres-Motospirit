@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161a">
+<title>Aprovacions · Motospirit</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<header>
+  <span class="mark">Motospirit</span>
+  <span class="sub">Aprovació de compres</span>
+  <nav>
+    <a href="index.html">Compra</a>
+    <a href="factura.html">Factura</a>
+    <a href="aprovacio.html" aria-current="page">Aprovacions</a>
+  </nav>
+</header>
+
+<main>
+
+  <div id="gate">
+    <h1>Cal iniciar sessió</h1>
+    <p>Aquesta pàgina és només per al responsable de compres.</p>
+    <div id="gbtn" style="display:flex;justify-content:center;margin-top:20px"></div>
+    <p id="gate-estat"></p>
+  </div>
+
+  <div id="contingut" class="hidden">
+    <h1>Sol·licituds pendents</h1>
+    <p class="lead">Aprova o denega les compres que ha demanat l'equip.</p>
+
+    <div class="whoami" id="whoami"></div>
+    <div id="banner" class="banner hidden"></div>
+
+    <div id="llista"></div>
+  </div>
+
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+window.addEventListener("load", () => {
+  const arrenca = () => inicialitzaLogin(prepara);
+  if (window.google && google.accounts) arrenca();
+  else setTimeout(arrenca, 600);
+});
+
+async function prepara(sessio) {
+  if (sessio.rol !== "responsable") {
+    document.getElementById("llista").innerHTML =
+      '<div class="empty">Aquesta pàgina és només per al responsable de compres.</div>';
+    return;
+  }
+  await carrega();
+}
+
+async function carrega() {
+  const cont = document.getElementById("llista");
+  cont.innerHTML = '<div class="empty">Carregant…</div>';
+  let sols;
+  try {
+    sols = await api("aprovacions", { id_token: SESSIO.token });
+  } catch (e) {
+    cont.innerHTML = '<div class="empty">' + escapa(e.message) + "</div>";
+    return;
+  }
+
+  if (!sols.length) {
+    cont.innerHTML = '<div class="empty">No hi ha res pendent. Tot al dia.</div>';
+    return;
+  }
+
+  cont.innerHTML = sols.map((s) =>
+    '<article class="sol" data-id="' + escapa(s.id) + '">' +
+      "<h3>" + escapa(s.descripcio) + "</h3>" +
+      '<div class="meta"><span class="id">' + escapa(s.id) + "</span> · " +
+        escapa(s.nom) + " · " + escapa(s.data) + " · " +
+        escapa(s.departament) + " / " + escapa(s.subdepartament) + "</div>" +
+      "<div>" +
+        '<span class="tag">~' + escapa(s.import_aprox) + " €</span> " +
+        '<span class="tag">' + (s.online === "Sí" ? "Online" : escapa(s.lloc || "Botiga")) + "</span> " +
+        (s.urgent === "Sí" ? '<span class="tag urgent">Urgent</span> ' : "") +
+        (s.web_nova === "Sí" ? '<span class="tag">Web nova</span>' : "") +
+      "</div>" +
+      (s.link ? '<div style="margin-top:8px"><a href="' + escapa(s.link) + '" target="_blank" rel="noopener">Obrir l\'enllaç del producte</a></div>' : "") +
+      '<div class="actions">' +
+        '<button class="small" onclick="decideix(this,\'' + escapa(s.id) + '\',\'Aprovat\')">Aprovar</button>' +
+        '<button class="small danger" onclick="decideix(this,\'' + escapa(s.id) + '\',\'Denegat\')">Denegar</button>' +
+      "</div>" +
+    "</article>"
+  ).join("");
+}
+
+async function decideix(boto, id, decisio) {
+  let motiu = "";
+  if (decisio === "Denegat") {
+    motiu = prompt("Motiu de la denegació:") || "";
+    if (!motiu.trim()) return;
+  }
+  const article = boto.closest(".sol");
+  article.querySelectorAll("button").forEach((b) => (b.disabled = true));
+  try {
+    await apiPost("decisio", { id_compra: id, decisio: decisio, motiu: motiu });
+    article.remove();
+    if (!document.querySelectorAll(".sol").length) {
+      document.getElementById("llista").innerHTML =
+        '<div class="empty">No hi ha res pendent. Tot al dia.</div>';
+    }
+    banner("ok", "<span class='id'>" + escapa(id) + "</span> marcada com a " + escapa(decisio.toLowerCase()) + ".");
+  } catch (e) {
+    article.querySelectorAll("button").forEach((b) => (b.disabled = false));
+    banner("bad", escapa(e.message));
+  }
+}
+</script>
+</body>
+</html>

@@ -1,14 +1,195 @@
 <!DOCTYPE html>
 <html lang="ca">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Compres Motospirit</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161a">
+<title>Compres · Motospirit</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <h1>Compres Motospirit</h1>
-  <p>En construcció.</p>
-  <script src="app.js"></script>
+
+<header>
+  <span class="mark">Motospirit</span>
+  <span class="sub">Registre de compres</span>
+  <nav>
+    <a href="index.html" aria-current="page">Compra</a>
+    <a href="factura.html">Factura</a>
+    <a href="aprovacio.html" id="nav-aprov" class="hidden">Aprovacions</a>
+  </nav>
+</header>
+
+<main>
+
+  <div id="gate">
+    <h1>Cal iniciar sessió</h1>
+    <p>Fes servir el teu compte de la UPC per registrar una compra.</p>
+    <div id="gbtn" style="display:flex;justify-content:center;margin-top:20px"></div>
+    <p id="gate-estat"></p>
+  </div>
+
+  <div id="contingut" class="hidden">
+    <h1>Demanar una compra</h1>
+    <p class="lead">Explica què necessites i on comprar-ho. El responsable de compres ho revisarà.</p>
+
+    <div class="whoami" id="whoami"></div>
+    <div id="banner" class="banner hidden"></div>
+
+    <form id="form" class="card" novalidate>
+
+      <div class="field row">
+        <div>
+          <label for="departament">Departament</label>
+          <select id="departament" required></select>
+          <div class="err" id="e-departament"></div>
+        </div>
+        <div>
+          <label for="subdepartament">Subdepartament</label>
+          <select id="subdepartament" required></select>
+          <div class="err" id="e-subdepartament"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="descripcio">Què vols comprar?
+          <span class="hint">Explicació breu. Si són diverses coses, llista-les.</span>
+        </label>
+        <textarea id="descripcio" required></textarea>
+        <div class="err" id="e-descripcio"></div>
+      </div>
+
+      <div class="field row">
+        <div>
+          <label for="import">Import aproximat (€)</label>
+          <input type="number" id="import" step="0.01" min="0" required>
+          <div class="err" id="e-import"></div>
+        </div>
+        <div>
+          <label>És una compra online?</label>
+          <div class="radios">
+            <label><input type="radio" name="online" value="Sí" checked> Sí</label>
+            <label><input type="radio" name="online" value="No"> No</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field" id="camp-link">
+        <label for="link">Enllaç del producte</label>
+        <input type="url" id="link" placeholder="https://…">
+        <div class="err" id="e-link"></div>
+      </div>
+
+      <div class="field" id="camp-lloc">
+        <label for="lloc">On es compra?
+          <span class="hint">Nom de la botiga o proveïdor.</span>
+        </label>
+        <input type="text" id="lloc">
+        <div class="err" id="e-lloc"></div>
+      </div>
+
+      <div class="field">
+        <label for="web-nova">És una web on encara no hem comprat mai?</label>
+        <div class="radios">
+          <label><input type="radio" name="webnova" value="No" checked> No</label>
+          <label><input type="radio" name="webnova" value="Sí"> Sí</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>És urgent?</label>
+        <div class="radios">
+          <label><input type="radio" name="urgent" value="No" checked> No</label>
+          <label><input type="radio" name="urgent" value="Sí"> Sí</label>
+        </div>
+      </div>
+
+      <button type="submit" id="enviar">Enviar la sol·licitud</button>
+    </form>
+  </div>
+
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+window.addEventListener("load", () => {
+  const arrenca = () => inicialitzaLogin(preparaFormulari);
+  if (window.google && google.accounts) arrenca();
+  else setTimeout(arrenca, 600);
+});
+
+function preparaFormulari(sessio) {
+  if (sessio.rol === "responsable") {
+    document.getElementById("nav-aprov").classList.remove("hidden");
+  }
+  omplerDepartaments(
+    document.getElementById("departament"),
+    document.getElementById("subdepartament")
+  );
+
+  document.querySelectorAll('input[name=online]').forEach((r) => {
+    r.addEventListener("change", commutaOnline);
+  });
+  commutaOnline();
+
+  document.getElementById("form").addEventListener("submit", envia);
+}
+
+function commutaOnline() {
+  const online = document.querySelector('input[name=online]:checked').value === "Sí";
+  document.getElementById("camp-link").classList.toggle("hidden", !online);
+  document.getElementById("camp-lloc").classList.toggle("hidden", online);
+}
+
+async function envia(ev) {
+  ev.preventDefault();
+  netejaErrors();
+  amagaBanner();
+
+  const online = document.querySelector('input[name=online]:checked').value === "Sí";
+  const dades = {
+    departament: document.getElementById("departament").value,
+    subdepartament: document.getElementById("subdepartament").value,
+    descripcio: document.getElementById("descripcio").value.trim(),
+    import_aprox: document.getElementById("import").value,
+    online: online ? "Sí" : "No",
+    link: online ? document.getElementById("link").value.trim() : "",
+    lloc: online ? "" : document.getElementById("lloc").value.trim(),
+    web_nova: document.querySelector('input[name=webnova]:checked').value,
+    urgent: document.querySelector('input[name=urgent]:checked').value
+  };
+
+  let hiHaErrors = false;
+  if (!dades.departament) { mostraError("e-departament", "Tria un departament."); hiHaErrors = true; }
+  if (!dades.subdepartament) { mostraError("e-subdepartament", "Tria un subdepartament."); hiHaErrors = true; }
+  if (!dades.descripcio) { mostraError("e-descripcio", "Explica què vols comprar."); hiHaErrors = true; }
+  if (!dades.import_aprox || Number(dades.import_aprox) <= 0) {
+    mostraError("e-import", "Posa un import aproximat."); hiHaErrors = true;
+  }
+  if (online && !dades.link) { mostraError("e-link", "Posa l'enllaç del producte."); hiHaErrors = true; }
+  if (!online && !dades.lloc) { mostraError("e-lloc", "Digues on es compra."); hiHaErrors = true; }
+  if (hiHaErrors) return;
+
+  const boto = document.getElementById("enviar");
+  boto.disabled = true;
+  boto.textContent = "Enviant…";
+  try {
+    const res = await apiPost("compra", dades);
+    document.getElementById("form").reset();
+    commutaOnline();
+    document.getElementById("subdepartament").innerHTML = "";
+    document.getElementById("subdepartament").disabled = true;
+    banner("ok", "Sol·licitud registrada amb el codi <span class='id'>" +
+      escapa(res.id_compra) + "</span>. Quan tinguis la factura, " +
+      "<a href='factura.html?compra=" + encodeURIComponent(res.id_compra) + "'>puja-la aquí</a>.");
+  } catch (e) {
+    banner("bad", escapa(e.message));
+  } finally {
+    boto.disabled = false;
+    boto.textContent = "Enviar la sol·licitud";
+  }
+}
+</script>
 </body>
 </html>

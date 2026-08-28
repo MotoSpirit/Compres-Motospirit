@@ -1,6 +1,256 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+  --ink: #14161a;
+  --paper: #f7f7f4;
+  --card: #ffffff;
+  --line: #e3e3de;
+  --muted: #6b6f76;
+  --accent: #e8442b;
+  --ok: #1d7a4c;
+  --warn: #a8630a;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
 body {
-  font-family: sans-serif;
-  max-width: 600px;
-  margin: 40px auto;
-  padding: 0 16px;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Archivo', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+header {
+  background: var(--ink);
+  color: #fff;
+  padding: 18px 20px;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+header .mark {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-size: 18px;
+  border-left: 3px solid var(--accent);
+  padding-left: 10px;
+}
+
+header .sub {
+  color: #a9adb4;
+  font-size: 14px;
+}
+
+nav {
+  margin-left: auto;
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+}
+
+nav a { color: #a9adb4; text-decoration: none; }
+nav a:hover, nav a[aria-current] { color: #fff; }
+
+main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 24px 16px 80px;
+}
+
+h1 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.lead { color: var(--muted); margin: 0 0 24px; font-size: 15px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.field { margin-bottom: 18px; }
+
+label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+label .hint {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+input[type=text], input[type=number], input[type=date], input[type=url],
+select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 15px;
+  background: #fff;
+  color: var(--ink);
+}
+
+input:focus-visible, select:focus-visible, textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+textarea { min-height: 90px; resize: vertical; }
+
+.row { display: flex; gap: 12px; }
+.row > * { flex: 1; }
+
+.radios { display: flex; gap: 10px; }
+
+.radios label {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 400;
+  background: #fff;
+  margin: 0;
+}
+
+.radios input { position: absolute; opacity: 0; }
+.radios label:has(input:checked) {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+}
+
+button:hover { background: #2a2d33; }
+button[disabled] { opacity: .5; cursor: not-allowed; }
+
+button.ghost { background: #fff; color: var(--ink); }
+button.ghost:hover { background: var(--paper); }
+button.danger { background: #fff; color: var(--accent); border-color: var(--accent); }
+button.small { padding: 7px 12px; font-size: 14px; }
+
+.err {
+  color: var(--accent);
+  font-size: 13px;
+  margin-top: 6px;
+  display: none;
+}
+.err.show { display: block; }
+
+.banner {
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 18px;
+  border: 1px solid;
+}
+.banner.ok { background: #edf7f1; border-color: #bfe0cd; color: var(--ok); }
+.banner.bad { background: #fdefec; border-color: #f6cec6; color: var(--accent); }
+.banner.info { background: #fff; border-color: var(--line); color: var(--muted); }
+
+.id {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Selector de compres pendents (formulari de factura) */
+.pendents { display: grid; gap: 8px; }
+
+.pendent {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.pendent:has(input:checked) { border-color: var(--ink); background: #fbfbf9; }
+.pendent input { margin-top: 3px; flex: none; }
+.pendent .meta { font-size: 13px; color: var(--muted); }
+.pendent .desc { font-size: 15px; }
+
+.empty {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Panell d'aprovació */
+.sol {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.sol h3 { margin: 0 0 2px; font-size: 16px; font-weight: 600; }
+.sol .meta { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+.sol .actions { display: flex; gap: 8px; margin-top: 12px; }
+
+.tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.tag.urgent { background: #fdefec; border-color: #f6cec6; color: var(--accent); }
+
+.hidden { display: none !important; }
+
+#gate { text-align: center; padding: 40px 20px; }
+#gate p { color: var(--muted); }
+
+.whoami {
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 520px) {
+  .row { flex-direction: column; }
+  main { padding-top: 18px; }
 }

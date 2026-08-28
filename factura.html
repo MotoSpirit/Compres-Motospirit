@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14161a">
+<title>Factures · Motospirit</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+<header>
+  <span class="mark">Motospirit</span>
+  <span class="sub">Registre de factures</span>
+  <nav>
+    <a href="index.html">Compra</a>
+    <a href="factura.html" aria-current="page">Factura</a>
+    <a href="aprovacio.html" id="nav-aprov" class="hidden">Aprovacions</a>
+  </nav>
+</header>
+
+<main>
+
+  <div id="gate">
+    <h1>Cal iniciar sessió</h1>
+    <p>Fes servir el teu compte de la UPC per pujar una factura.</p>
+    <div id="gbtn" style="display:flex;justify-content:center;margin-top:20px"></div>
+    <p id="gate-estat"></p>
+  </div>
+
+  <div id="contingut" class="hidden">
+    <h1>Pujar una factura</h1>
+    <p class="lead">Enllaça la factura amb la compra que vas demanar.</p>
+
+    <div class="whoami" id="whoami"></div>
+    <div id="banner" class="banner hidden"></div>
+
+    <form id="form" class="card" novalidate>
+
+      <div class="field">
+        <label>A quina compra correspon?
+          <span class="hint">Pots marcar-ne més d'una si la factura cobreix diverses comandes.</span>
+        </label>
+        <div class="pendents" id="pendents">
+          <div class="empty">Carregant les teves compres…</div>
+        </div>
+        <label style="font-weight:400;margin-top:10px">
+          <input type="checkbox" id="veure-tots"> Veure les compres de tot l'equip
+        </label>
+        <div class="err" id="e-compres"></div>
+      </div>
+
+      <div class="field">
+        <label for="concepte">Concepte
+          <span class="hint">Què s'ha comprat. Si són moltes coses: «cargoleria», «material refrigeració»…</span>
+        </label>
+        <textarea id="concepte" required></textarea>
+        <div class="err" id="e-concepte"></div>
+      </div>
+
+      <div class="field">
+        <label for="tipus">Tipus de factura</label>
+        <select id="tipus" required></select>
+        <div class="err" id="e-tipus"></div>
+      </div>
+
+      <div class="field hidden" id="camp-justificacio">
+        <label for="justificacio">Per què no hi ha factura?
+          <span class="hint">Explica-ho: compra en efectiu, tiquet perdut, proveïdor que no en fa…</span>
+        </label>
+        <textarea id="justificacio"></textarea>
+        <div class="err" id="e-justificacio"></div>
+      </div>
+
+      <div class="field row">
+        <div>
+          <label for="import">Import exacte amb IVA (€)</label>
+          <input type="number" id="import" step="0.01" min="0" required>
+          <div class="err" id="e-import"></div>
+        </div>
+        <div>
+          <label for="iva">IVA (%)
+            <span class="hint">El percentatge, no l'import.</span>
+          </label>
+          <input type="number" id="iva" step="0.1" min="0" max="100" value="21">
+          <div class="err" id="e-iva"></div>
+        </div>
+      </div>
+
+      <div class="field row">
+        <div>
+          <label for="data-factura">Data de la factura</label>
+          <input type="date" id="data-factura" required>
+          <div class="err" id="e-data-factura"></div>
+        </div>
+        <div>
+          <label for="data-pagament">Data del pagament</label>
+          <input type="date" id="data-pagament">
+          <div class="err" id="e-data-pagament"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="metode">Mètode de pagament</label>
+        <select id="metode" required></select>
+        <div class="err" id="e-metode"></div>
+      </div>
+
+      <div class="field row">
+        <div>
+          <label for="proveidor">Nom del proveïdor</label>
+          <input type="text" id="proveidor" required>
+          <div class="err" id="e-proveidor"></div>
+        </div>
+        <div>
+          <label for="nif">NIF del proveïdor
+            <span class="hint">Exemple: ES12345678A</span>
+          </label>
+          <input type="text" id="nif">
+          <div class="err" id="e-nif"></div>
+        </div>
+      </div>
+
+      <div class="field row">
+        <div>
+          <label for="departament">Departament</label>
+          <select id="departament" required></select>
+          <div class="err" id="e-departament"></div>
+        </div>
+        <div>
+          <label for="subdepartament">Subdepartament</label>
+          <select id="subdepartament" required></select>
+          <div class="err" id="e-subdepartament"></div>
+        </div>
+      </div>
+
+      <div class="field" id="camp-pdf">
+        <label for="pdf">Factura en PDF</label>
+        <input type="file" id="pdf" accept="application/pdf">
+        <div class="err" id="e-pdf"></div>
+      </div>
+
+      <button type="submit" id="enviar">Desar la factura</button>
+    </form>
+  </div>
+
+</main>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+let COMPRES = [];
+
+window.addEventListener("load", () => {
+  const arrenca = () => inicialitzaLogin(prepara);
+  if (window.google && google.accounts) arrenca();
+  else setTimeout(arrenca, 600);
+});
+
+async function prepara(sessio) {
+  if (sessio.rol === "responsable") {
+    document.getElementById("nav-aprov").classList.remove("hidden");
+  }
+  omplerDepartaments(
+    document.getElementById("departament"),
+    document.getElementById("subdepartament")
+  );
+  omplerOpcions(document.getElementById("tipus"), TIPUS_FACTURA, "Tria el tipus…");
+  omplerOpcions(document.getElementById("metode"), METODES_PAGAMENT, "Tria el mètode…");
+
+  document.getElementById("tipus").addEventListener("change", commutaTipus);
+  document.getElementById("veure-tots").addEventListener("change", carregaPendents);
+  document.getElementById("form").addEventListener("submit", envia);
+
+  await carregaPendents();
+}
+
+function commutaTipus() {
+  const sensefactura = document.getElementById("tipus").value === "Sense factura";
+  document.getElementById("camp-justificacio").classList.toggle("hidden", !sensefactura);
+  document.getElementById("camp-pdf").classList.toggle("hidden", sensefactura);
+}
+
+async function carregaPendents() {
+  const cont = document.getElementById("pendents");
+  cont.innerHTML = '<div class="empty">Carregant…</div>';
+  const tots = document.getElementById("veure-tots").checked ? "1" : "";
+  try {
+    COMPRES = await api("pendents", { id_token: SESSIO.token, tots: tots });
+  } catch (e) {
+    cont.innerHTML = '<div class="empty">' + escapa(e.message) + "</div>";
+    return;
+  }
+
+  if (!COMPRES.length) {
+    cont.innerHTML = '<div class="empty">No tens compres pendents de factura.</div>';
+  } else {
+    cont.innerHTML = COMPRES.map((c) =>
+      '<label class="pendent">' +
+        '<input type="checkbox" name="compra" value="' + escapa(c.id) + '">' +
+        "<span>" +
+          '<span class="desc">' + escapa(c.descripcio) + "</span><br>" +
+          '<span class="meta"><span class="id">' + escapa(c.id) + "</span> · " +
+          escapa(c.nom) + " · " + escapa(c.data) + " · ~" + escapa(c.import_aprox) + " €</span>" +
+        "</span>" +
+      "</label>"
+    ).join("");
+  }
+
+  cont.insertAdjacentHTML("beforeend",
+    '<label class="pendent">' +
+      '<input type="checkbox" id="sense-compra">' +
+      '<span><span class="desc">No hi és a la llista</span><br>' +
+      '<span class="meta">La compra no es va registrar. Es crearà automàticament amb les dades ' +
+      "d'aquesta factura.</span></span></label>"
+  );
+
+  preseleccionaDeLaURL();
+}
+
+function preseleccionaDeLaURL() {
+  const id = new URLSearchParams(location.search).get("compra");
+  if (!id) return;
+  const cb = document.querySelector('input[name=compra][value="' + CSS.escape(id) + '"]');
+  if (cb) {
+    cb.checked = true;
+    const c = COMPRES.find((x) => x.id === id);
+    if (c) {
+      document.getElementById("departament").value = c.departament;
+      document.getElementById("departament").dispatchEvent(new Event("change"));
+      document.getElementById("subdepartament").value = c.subdepartament;
+      if (!document.getElementById("concepte").value) {
+        document.getElementById("concepte").value = c.descripcio;
+      }
+    }
+  }
+}
+
+async function envia(ev) {
+  ev.preventDefault();
+  netejaErrors();
+  amagaBanner();
+
+  const seleccionades = Array.from(
+    document.querySelectorAll('input[name=compra]:checked')
+  ).map((c) => c.value);
+  const senseCompra = document.getElementById("sense-compra").checked;
+  const tipus = document.getElementById("tipus").value;
+  const sensefactura = tipus === "Sense factura";
+  const fitxer = document.getElementById("pdf").files[0];
+
+  const dades = {
+    compres: seleccionades,
+    sense_compra: senseCompra ? "Sí" : "No",
+    concepte: document.getElementById("concepte").value.trim(),
+    tipus: tipus,
+    justificacio: document.getElementById("justificacio").value.trim(),
+    import_total: document.getElementById("import").value,
+    iva: document.getElementById("iva").value,
+    data_factura: document.getElementById("data-factura").value,
+    data_pagament: document.getElementById("data-pagament").value,
+    metode: document.getElementById("metode").value,
+    proveidor: document.getElementById("proveidor").value.trim(),
+    nif: document.getElementById("nif").value.trim(),
+    departament: document.getElementById("departament").value,
+    subdepartament: document.getElementById("subdepartament").value
+  };
+
+  let hiHaErrors = false;
+  if (!seleccionades.length && !senseCompra) {
+    mostraError("e-compres", "Tria la compra o marca «No hi és a la llista»."); hiHaErrors = true;
+  }
+  if (!dades.concepte) { mostraError("e-concepte", "Digues què s'ha comprat."); hiHaErrors = true; }
+  if (!dades.tipus) { mostraError("e-tipus", "Tria el tipus de factura."); hiHaErrors = true; }
+  if (sensefactura && !dades.justificacio) {
+    mostraError("e-justificacio", "Cal justificar per què no hi ha factura."); hiHaErrors = true;
+  }
+  if (!dades.import_total || Number(dades.import_total) <= 0) {
+    mostraError("e-import", "Posa l'import exacte."); hiHaErrors = true;
+  }
+  if (!dades.data_factura) { mostraError("e-data-factura", "Posa la data de la factura."); hiHaErrors = true; }
+  if (!dades.metode) { mostraError("e-metode", "Tria el mètode de pagament."); hiHaErrors = true; }
+  if (!dades.proveidor) { mostraError("e-proveidor", "Posa el nom del proveïdor."); hiHaErrors = true; }
+  if (!dades.departament) { mostraError("e-departament", "Tria un departament."); hiHaErrors = true; }
+  if (!dades.subdepartament) { mostraError("e-subdepartament", "Tria un subdepartament."); hiHaErrors = true; }
+  if (!sensefactura && !fitxer) { mostraError("e-pdf", "Puja el PDF de la factura."); hiHaErrors = true; }
+  if (fitxer && fitxer.size > 8 * 1024 * 1024) {
+    mostraError("e-pdf", "El PDF no pot passar de 8 MB."); hiHaErrors = true;
+  }
+  if (hiHaErrors) return;
+
+  const boto = document.getElementById("enviar");
+  boto.disabled = true;
+  boto.textContent = "Desant…";
+  try {
+    if (fitxer && !sensefactura) {
+      dades.pdf_nom = fitxer.name;
+      dades.pdf_base64 = await fitxerABase64(fitxer);
+    }
+    const res = await apiPost("factura", dades);
+    document.getElementById("form").reset();
+    commutaTipus();
+    await carregaPendents();
+    banner("ok", "Factura desada amb el codi <span class='id'>" + escapa(res.id_factura) +
+      "</span>" + (res.compres_actualitzades.length
+        ? " i enllaçada amb <span class='id'>" + res.compres_actualitzades.map(escapa).join("</span>, <span class='id'>") + "</span>."
+        : "."));
+  } catch (e) {
+    banner("bad", escapa(e.message));
+  } finally {
+    boto.disabled = false;
+    boto.textContent = "Desar la factura";
+  }
+}
+</script>
+</body>
+</html>
