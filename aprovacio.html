@@ -75,7 +75,8 @@ async function carrega() {
     return;
   }
 
-  cont.innerHTML = sols.map((s) =>
+  try {
+    cont.innerHTML = sols.map((s) =>
     '<article class="sol" data-id="' + escapa(s.id) + '">' +
       "<h3>" + escapa(s.descripcio) + "</h3>" +
       '<div class="meta"><span class="id">' + escapa(s.id) + "</span> · " +
@@ -83,7 +84,7 @@ async function carrega() {
         escapa(s.departament) + " / " + escapa(s.subdepartament) + "</div>" +
       "<div>" +
         '<span class="tag">~' + escapa(s.import_aprox) + " €</span> " +
-        (s.disponible !== null
+        (typeof s.disponible === "number"
           ? '<span class="tag' + (s.supera ? " urgent" : "") + '">Partida: ' +
             escapa(s.disponible.toFixed(2)) + " € disponibles</span> "
           : "") +
@@ -97,7 +98,11 @@ async function carrega() {
         '<button class="small danger" onclick="decideix(this,\'' + escapa(s.id) + '\',\'Denegat\')">Denegar</button>' +
       "</div>" +
     "</article>"
-  ).join("");
+    ).join("");
+  } catch (e) {
+    cont.innerHTML = '<div class="empty">Error pintant les sol\u00b7licituds: ' +
+      escapa(e.message) + "</div>";
+  }
 }
 
 async function decideix(boto, id, decisio) {
