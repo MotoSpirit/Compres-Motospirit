@@ -144,7 +144,7 @@ async function preparaFormulari(sessio) {
 
   document.getElementById("form").addEventListener("submit", envia);
 
-  ["subdepartament", "import"].forEach((id) => {
+  ["subdepartament", "import", "partida"].forEach((id) => {
     document.getElementById(id).addEventListener("input", pintaSaldo);
     document.getElementById(id).addEventListener("change", pintaSaldo);
   });
@@ -217,17 +217,27 @@ function pintaSaldo() {
   const el = document.getElementById("saldo");
   const dep = document.getElementById("departament").value;
   const sub = document.getElementById("subdepartament").value;
-  const partida = PRESSUPOST.find(
-    (p) => p.departament === dep && p.subdepartament === sub
-  );
+  const par = document.getElementById("partida").value;
 
-  if (!partida) { el.classList.add("hidden"); return; }
+  // El saldo que importa és el de la partida triada. Per a les dues opcions
+  // especials no n'hi ha, i llavors es mostra el del subdepartament.
+  let font = DESGLOS.find(
+    (p) => p.departament === dep && p.subdepartament === sub && p.partida === par
+  );
+  let etiqueta = par;
+
+  if (!font) {
+    font = PRESSUPOST.find((p) => p.departament === dep && p.subdepartament === sub);
+    etiqueta = sub + " (subdepartament)";
+  }
+
+  if (!font) { el.classList.add("hidden"); return; }
 
   const imp = Number(document.getElementById("import").value) || 0;
-  const restant = partida.disponible - imp;
+  const restant = font.disponible - imp;
   el.classList.remove("hidden");
   el.classList.toggle("alerta", restant < 0);
-  el.innerHTML = escapa(sub) + " · <strong>" + euros(partida.disponible) +
+  el.innerHTML = escapa(etiqueta) + " · <strong>" + euros(font.disponible) +
     "</strong> disponibles" +
     (imp > 0
       ? (restant < 0
