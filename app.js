@@ -231,20 +231,69 @@ function netejaCache() {
 // Utilitats de formulari
 // ---------------------------------------------------------------------------
 
+// Les opcions surten del full «Pressupost»: afegir-hi o treure-hi una fila
+// canvia els desplegables dels dos formularis. El DEPARTAMENTS del config.js
+// només s'usa si el full encara no s'ha pogut llegir.
+let PARTIDES = [];
+let MAPA_PARTIDES = null;
+
+function aplicaPartides(partides) {
+  PARTIDES = partides || [];
+  const m = {};
+  PARTIDES.forEach((p) => {
+    if (!p.departament) return;
+    if (!m[p.departament]) m[p.departament] = [];
+    if (p.subdepartament && m[p.departament].indexOf(p.subdepartament) === -1) {
+      m[p.departament].push(p.subdepartament);
+    }
+  });
+  MAPA_PARTIDES = Object.keys(m).length ? m : null;
+}
+
+function mapaDepartaments() {
+  return MAPA_PARTIDES || DEPARTAMENTS;
+}
+
+// Es pot cridar diverses vegades: manté el que l'usuari tingui triat.
 function omplerDepartaments(selDep, selSub) {
+  const mapa = mapaDepartaments();
+  const depAbans = selDep.value;
+  const subAbans = selSub.value;
+
   selDep.innerHTML = '<option value="">Tria un departament…</option>';
-  Object.keys(DEPARTAMENTS).forEach((d) => {
+  Object.keys(mapa).forEach((d) => {
     selDep.insertAdjacentHTML("beforeend", "<option>" + escapa(d) + "</option>");
   });
-  selDep.addEventListener("change", () => {
-    const subs = DEPARTAMENTS[selDep.value] || [];
-    selSub.innerHTML = '<option value="">Tria un subdepartament…</option>';
-    subs.forEach((s) => {
-      selSub.insertAdjacentHTML("beforeend", "<option>" + escapa(s) + "</option>");
-    });
-    selSub.disabled = subs.length === 0;
+
+  if (!selDep.dataset.lligat) {
+    selDep.addEventListener("change", () => omplerSubdepartaments(selDep, selSub));
+    selDep.dataset.lligat = "1";
+  }
+
+  if (depAbans && mapa[depAbans]) selDep.value = depAbans;
+  omplerSubdepartaments(selDep, selSub, subAbans);
+}
+
+function omplerSubdepartaments(selDep, selSub, valorPrevi) {
+  const subs = mapaDepartaments()[selDep.value] || [];
+  selSub.innerHTML = '<option value="">Tria un subdepartament…</option>';
+  subs.forEach((s) => {
+    selSub.insertAdjacentHTML("beforeend", "<option>" + escapa(s) + "</option>");
   });
-  selSub.disabled = true;
+  selSub.disabled = subs.length === 0;
+  if (valorPrevi && subs.indexOf(valorPrevi) !== -1) selSub.value = valorPrevi;
+  selSub.dispatchEvent(new Event("change"));
+}
+
+/**
+ * Carrega les partides i refà els desplegables. `despres` és opcional.
+ */
+function carregaPartides(selDep, selSub, despres) {
+  return apiCachejat("pressupost", {}, (dades) => {
+    aplicaPartides(dades);
+    omplerDepartaments(selDep, selSub);
+    if (despres) despres(dades);
+  }).catch(() => {});
 }
 
 function omplerOpcions(sel, llista, buit) {

@@ -167,6 +167,13 @@ async function prepara(sessio) {
   document.getElementById("veure-tots").addEventListener("change", carregaPendents);
   document.getElementById("form").addEventListener("submit", envia);
 
+  // Els departaments surten del full «Pressupost», igual que al formulari de
+  // compra, perquè les dues llistes no puguin divergir.
+  carregaPartides(
+    document.getElementById("departament"),
+    document.getElementById("subdepartament")
+  );
+
   await carregaPendents();
 }
 
