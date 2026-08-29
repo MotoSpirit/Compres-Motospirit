@@ -1,30 +1,106 @@
 // Login amb Google i crides a l'Apps Script. Compartit per les tres pàgines.
+//
+// La sessió verificada es guarda al navegador: en canviar de pestanya no es
+// torna a preguntar res a ningú i la pàgina es pinta a l'instant. Cada quart
+// d'hora es revalida en segon pla, sense que l'usuari ho noti.
 
-let SESSIO = null; // { token, email, nom, rol }
+const CLAU_SESSIO = "ms_sessio";
+const REVALIDA_CADA = 15 * 60 * 1000;
+const PREFIX_CACHE = "ms_cache_";
+const CADUCITAT_CACHE = 10 * 60 * 1000;
+
+let SESSIO = null;
+
+// ---------------------------------------------------------------------------
+// Sessió
+// ---------------------------------------------------------------------------
 
 function inicialitzaLogin(onLogin) {
-  const guardat = sessionStorage.getItem("ms_token");
-  if (guardat) {
-    validaToken(guardat, onLogin);
+  const desada = sessioDesada();
+  if (desada) {
+    SESSIO = desada;
+    obreContingut();
+    onLogin(SESSIO);
+    if (Date.now() - (desada.verificat || 0) > REVALIDA_CADA) revalida();
     return;
   }
-  mostraBotoGoogle(onLogin);
+  demanaLogin(onLogin);
 }
 
-function mostraBotoGoogle(onLogin) {
+function sessioDesada() {
+  try {
+    const s = JSON.parse(localStorage.getItem(CLAU_SESSIO));
+    if (!s || !s.token) return null;
+    // Els tokens de Google duren aproximadament una hora.
+    const caduca = caducitatToken(s.token);
+    if (!caduca || caduca - 60 < Date.now() / 1000) return null;
+    return s;
+  } catch (e) {
+    return null;
+  }
+}
+
+function caducitatToken(token) {
+  try {
+    const cos = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(cos)).exp;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Comprova en segon pla que el compte segueixi donat d'alta. Si falla no
+// s'interromp res: el servidor verifica igualment cada escriptura.
+async function revalida() {
+  try {
+    const dades = await api("jo", { id_token: SESSIO.token });
+    SESSIO = Object.assign({}, SESSIO, dades, { verificat: Date.now() });
+    localStorage.setItem(CLAU_SESSIO, JSON.stringify(SESSIO));
+    pintaWhoami();
+  } catch (e) {
+    localStorage.removeItem(CLAU_SESSIO);
+  }
+}
+
+function demanaLogin(onLogin) {
   document.getElementById("gate").classList.remove("hidden");
   document.getElementById("contingut").classList.add("hidden");
 
-  google.accounts.id.initialize({
-    client_id: CLIENT_ID,
-    callback: (resposta) => validaToken(resposta.credential, onLogin)
-  });
-  google.accounts.id.renderButton(document.getElementById("gbtn"), {
-    theme: "filled_black",
-    size: "large",
-    text: "signin_with",
-    locale: "ca"
-  });
+  carregaGoogle()
+    .then(() => {
+      google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        auto_select: true, // si ja ha entrat abans, no cal ni clicar
+        callback: (resposta) => validaToken(resposta.credential, onLogin)
+      });
+      google.accounts.id.renderButton(document.getElementById("gbtn"), {
+        theme: "filled_black",
+        size: "large",
+        text: "signin_with",
+        locale: "ca"
+      });
+      google.accounts.id.prompt();
+    })
+    .catch((e) => {
+      document.getElementById("gate-estat").textContent = e.message;
+    });
+}
+
+// La llibreria de Google només es carrega quan cal iniciar sessió de debò.
+function carregaGoogle() {
+  if (window.google && window.google.accounts) return Promise.resolve();
+  if (!window._promesaGoogle) {
+    window._promesaGoogle = new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = "https://accounts.google.com/gsi/client";
+      s.async = true;
+      s.defer = true;
+      s.onload = res;
+      s.onerror = () => rej(new Error("No s'ha pogut carregar el login de Google."));
+      document.head.appendChild(s);
+    });
+  }
+  return window._promesaGoogle;
 }
 
 async function validaToken(token, onLogin) {
@@ -32,16 +108,29 @@ async function validaToken(token, onLogin) {
   if (estat) estat.textContent = "Comprovant el compte…";
   try {
     const dades = await api("jo", { id_token: token });
-    SESSIO = { token, email: dades.email, nom: dades.nom, rol: dades.rol };
-    sessionStorage.setItem("ms_token", token);
-    document.getElementById("gate").classList.add("hidden");
-    document.getElementById("contingut").classList.remove("hidden");
-    pintaWhoami();
+    SESSIO = {
+      token: token,
+      email: dades.email,
+      nom: dades.nom,
+      rol: dades.rol,
+      verificat: Date.now()
+    };
+    localStorage.setItem(CLAU_SESSIO, JSON.stringify(SESSIO));
+    obreContingut();
     onLogin(SESSIO);
   } catch (e) {
-    sessionStorage.removeItem("ms_token");
+    localStorage.removeItem(CLAU_SESSIO);
     if (estat) estat.textContent = e.message;
-    mostraBotoGoogle(onLogin);
+  }
+}
+
+function obreContingut() {
+  document.getElementById("gate").classList.add("hidden");
+  document.getElementById("contingut").classList.remove("hidden");
+  pintaWhoami();
+  if (SESSIO && SESSIO.rol === "responsable") {
+    const nav = document.getElementById("nav-aprov");
+    if (nav) nav.classList.remove("hidden");
   }
 }
 
@@ -55,9 +144,15 @@ function pintaWhoami() {
 }
 
 function tancaSessio() {
-  sessionStorage.removeItem("ms_token");
+  localStorage.removeItem(CLAU_SESSIO);
+  netejaCache();
+  if (window.google && window.google.accounts) google.accounts.id.disableAutoSelect();
   location.reload();
 }
+
+// ---------------------------------------------------------------------------
+// Crides a l'Apps Script
+// ---------------------------------------------------------------------------
 
 // L'Apps Script no respon a peticions amb preflight CORS: per això els GET van
 // sense capçaleres i els POST s'envien com a text pla.
@@ -82,17 +177,70 @@ async function apiPost(accio, cos) {
   return dades.data;
 }
 
-// Departament -> subdepartament
+/**
+ * Pinta primer l'últim resultat conegut i després el refresca.
+ * `aplica(dades, esAntic)` es crida un cop o dos.
+ */
+async function apiCachejat(accio, params, aplica, clauExtra) {
+  const clau = PREFIX_CACHE + accio + (clauExtra || "");
+  const desat = llegeixCache(clau);
+  if (desat) aplica(desat, true);
+
+  try {
+    const fresc = await api(accio, Object.assign({ id_token: SESSIO.token }, params));
+    escriuCache(clau, fresc);
+    aplica(fresc, false);
+    return fresc;
+  } catch (e) {
+    if (desat) return desat; // el que hi havia serveix; no molestem l'usuari
+    throw e;
+  }
+}
+
+function llegeixCache(clau) {
+  try {
+    const c = JSON.parse(localStorage.getItem(clau));
+    if (!c || Date.now() - c.ts > CADUCITAT_CACHE) return null;
+    return c.dades;
+  } catch (e) {
+    return null;
+  }
+}
+
+function escriuCache(clau, dades) {
+  try {
+    localStorage.setItem(clau, JSON.stringify({ ts: Date.now(), dades: dades }));
+  } catch (e) {
+    // Si no hi cap, tant se val: només és una optimització.
+  }
+}
+
+function invalidaCache(accio) {
+  Object.keys(localStorage)
+    .filter((k) => k.indexOf(PREFIX_CACHE + accio) === 0)
+    .forEach((k) => localStorage.removeItem(k));
+}
+
+function netejaCache() {
+  Object.keys(localStorage)
+    .filter((k) => k.indexOf(PREFIX_CACHE) === 0)
+    .forEach((k) => localStorage.removeItem(k));
+}
+
+// ---------------------------------------------------------------------------
+// Utilitats de formulari
+// ---------------------------------------------------------------------------
+
 function omplerDepartaments(selDep, selSub) {
   selDep.innerHTML = '<option value="">Tria un departament…</option>';
   Object.keys(DEPARTAMENTS).forEach((d) => {
-    selDep.insertAdjacentHTML("beforeend", '<option>' + escapa(d) + "</option>");
+    selDep.insertAdjacentHTML("beforeend", "<option>" + escapa(d) + "</option>");
   });
   selDep.addEventListener("change", () => {
     const subs = DEPARTAMENTS[selDep.value] || [];
     selSub.innerHTML = '<option value="">Tria un subdepartament…</option>';
     subs.forEach((s) => {
-      selSub.insertAdjacentHTML("beforeend", '<option>' + escapa(s) + "</option>");
+      selSub.insertAdjacentHTML("beforeend", "<option>" + escapa(s) + "</option>");
     });
     selSub.disabled = subs.length === 0;
   });

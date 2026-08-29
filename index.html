@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#14161a">
 <title>Compres · Motospirit</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -22,7 +21,7 @@
 
 <main>
 
-  <div id="gate">
+  <div id="gate" class="hidden">
     <h1>Cal iniciar sessió</h1>
     <p>Fes servir el teu compte de la UPC per registrar una compra.</p>
     <div id="gbtn" style="display:flex;justify-content:center;margin-top:20px"></div>
@@ -115,18 +114,13 @@
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script>
-window.addEventListener("load", () => {
-  const arrenca = () => inicialitzaLogin(preparaFormulari);
-  if (window.google && google.accounts) arrenca();
-  else setTimeout(arrenca, 600);
+window.addEventListener("DOMContentLoaded", () => {
+  inicialitzaLogin(preparaFormulari);
 });
 
 let PRESSUPOST = [];
 
 async function preparaFormulari(sessio) {
-  if (sessio.rol === "responsable") {
-    document.getElementById("nav-aprov").classList.remove("hidden");
-  }
   omplerDepartaments(
     document.getElementById("departament"),
     document.getElementById("subdepartament")
@@ -139,17 +133,18 @@ async function preparaFormulari(sessio) {
 
   document.getElementById("form").addEventListener("submit", envia);
 
-  // El saldo és informatiu: si no es pot llegir, el formulari segueix funcionant.
-  try {
-    PRESSUPOST = await api("pressupost", { id_token: SESSIO.token });
-  } catch (e) {
-    PRESSUPOST = [];
-  }
   ["subdepartament", "import"].forEach((id) => {
     document.getElementById(id).addEventListener("input", pintaSaldo);
     document.getElementById(id).addEventListener("change", pintaSaldo);
   });
   document.getElementById("departament").addEventListener("change", pintaSaldo);
+
+  // El saldo és informatiu: es pinta amb l'últim conegut i es refresca sol.
+  // Si no es pot llegir, el formulari segueix funcionant igual.
+  apiCachejat("pressupost", {}, (dades) => {
+    PRESSUPOST = dades;
+    pintaSaldo();
+  }).catch(() => { PRESSUPOST = []; });
 }
 
 function pintaSaldo() {

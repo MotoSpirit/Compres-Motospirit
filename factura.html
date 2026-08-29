@@ -6,7 +6,6 @@
 <meta name="theme-color" content="#14161a">
 <title>Factures · Motospirit</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -22,7 +21,7 @@
 
 <main>
 
-  <div id="gate">
+  <div id="gate" class="hidden">
     <h1>Cal iniciar sessió</h1>
     <p>Fes servir el teu compte de la UPC per pujar una factura.</p>
     <div id="gbtn" style="display:flex;justify-content:center;margin-top:20px"></div>
@@ -152,16 +151,11 @@
 <script>
 let COMPRES = [];
 
-window.addEventListener("load", () => {
-  const arrenca = () => inicialitzaLogin(prepara);
-  if (window.google && google.accounts) arrenca();
-  else setTimeout(arrenca, 600);
+window.addEventListener("DOMContentLoaded", () => {
+  inicialitzaLogin(prepara);
 });
 
 async function prepara(sessio) {
-  if (sessio.rol === "responsable") {
-    document.getElementById("nav-aprov").classList.remove("hidden");
-  }
   omplerDepartaments(
     document.getElementById("departament"),
     document.getElementById("subdepartament")
@@ -187,12 +181,20 @@ async function carregaPendents() {
   cont.innerHTML = '<div class="empty">Carregant…</div>';
   const tots = document.getElementById("veure-tots").checked ? "1" : "";
   try {
-    COMPRES = await api("pendents", { id_token: SESSIO.token, tots: tots });
+    // Es pinta amb l'últim conegut i es refresca en segon pla.
+    await apiCachejat("pendents", { tots: tots }, (dades) => {
+      COMPRES = dades;
+      pintaPendents();
+    }, tots ? "_tots" : "");
+    return;
   } catch (e) {
     cont.innerHTML = '<div class="empty">' + escapa(e.message) + "</div>";
     return;
   }
+}
 
+function pintaPendents() {
+  const cont = document.getElementById("pendents");
   if (!COMPRES.length) {
     cont.innerHTML = '<div class="empty">No tens compres pendents de factura.</div>';
   } else {
@@ -299,6 +301,7 @@ async function envia(ev) {
       dades.pdf_base64 = await fitxerABase64(fitxer);
     }
     const res = await apiPost("factura", dades);
+    invalidaCache("pendents");
     document.getElementById("form").reset();
     commutaTipus();
     await carregaPendents();
