@@ -185,8 +185,10 @@ function omplerPartides() {
   const dep = document.getElementById("departament").value;
   const sub = document.getElementById("subdepartament").value;
 
+  // Les entrades marcades «extra» no són partides del pressupost: són claus
+  // que han aparegut a compres antigues o a les opcions especials.
   const propies = (DESGLOS || [])
-    .filter((p) => p.departament === dep && p.subdepartament === sub)
+    .filter((p) => !p.extra && p.departament === dep && p.subdepartament === sub)
     .map((p) => p.partida);
 
   sel.innerHTML = '<option value="">Tria una partida…</option>';
@@ -222,7 +224,7 @@ function pintaSaldo() {
   // El saldo que importa és el de la partida triada. Per a les dues opcions
   // especials no n'hi ha, i llavors es mostra el del subdepartament.
   let font = DESGLOS.find(
-    (p) => p.departament === dep && p.subdepartament === sub && p.partida === par
+    (p) => !p.extra && p.departament === dep && p.subdepartament === sub && p.partida === par
   );
   let etiqueta = par;
 
