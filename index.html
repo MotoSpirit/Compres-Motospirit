@@ -50,6 +50,14 @@
         </div>
       </div>
 
+      <div class="field">
+        <label for="partida">Partida del pressupost
+          <span class="hint">A quina partida del subdepartament correspon.</span>
+        </label>
+        <select id="partida" required></select>
+        <div class="err" id="e-partida"></div>
+      </div>
+
       <div class="saldo hidden" id="saldo"></div>
 
       <div class="field">
@@ -119,6 +127,7 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 let PRESSUPOST = [];
+let DESGLOS = [];
 
 async function preparaFormulari(sessio) {
   omplerDepartaments(
@@ -147,6 +156,35 @@ async function preparaFormulari(sessio) {
     document.getElementById("subdepartament"),
     (dades) => { PRESSUPOST = dades; pintaSaldo(); }
   );
+
+  // Les partides del desglossament, filtrades pel subdepartament triat.
+  document.getElementById("subdepartament").addEventListener("change", omplerPartides);
+  apiCachejat("desglos", {}, (dades) => {
+    DESGLOS = dades;
+    omplerPartides();
+  }).catch(() => { DESGLOS = []; omplerPartides(); });
+}
+
+function omplerPartides() {
+  const sel = document.getElementById("partida");
+  const previ = sel.value;
+  const dep = document.getElementById("departament").value;
+  const sub = document.getElementById("subdepartament").value;
+
+  const propies = DESGLOS
+    .filter((p) => p.departament === dep && p.subdepartament === sub)
+    .map((p) => p.partida);
+
+  sel.innerHTML = '<option value="">Tria una partida…</option>';
+  propies.forEach((p) => {
+    sel.insertAdjacentHTML("beforeend", "<option>" + escapa(p) + "</option>");
+  });
+  sel.insertAdjacentHTML("beforeend",
+    '<option disabled>──────────</option>' +
+    "<option>" + escapa(PARTIDA_SENSE) + "</option>" +
+    "<option>" + escapa(PARTIDA_ESPECIAL) + "</option>"
+  );
+  if (previ) sel.value = previ;
 }
 
 function pintaSaldo() {
@@ -191,6 +229,7 @@ async function envia(ev) {
   const dades = {
     departament: document.getElementById("departament").value,
     subdepartament: document.getElementById("subdepartament").value,
+    partida: document.getElementById("partida").value,
     descripcio: document.getElementById("descripcio").value.trim(),
     import_aprox: document.getElementById("import").value,
     online: online ? "Sí" : "No",
@@ -203,6 +242,7 @@ async function envia(ev) {
   let hiHaErrors = false;
   if (!dades.departament) { mostraError("e-departament", "Tria un departament."); hiHaErrors = true; }
   if (!dades.subdepartament) { mostraError("e-subdepartament", "Tria un subdepartament."); hiHaErrors = true; }
+  if (!dades.partida) { mostraError("e-partida", "Tria una partida."); hiHaErrors = true; }
   if (!dades.descripcio) { mostraError("e-descripcio", "Explica què vols comprar."); hiHaErrors = true; }
   if (!dades.import_aprox || Number(dades.import_aprox) <= 0) {
     mostraError("e-import", "Posa un import aproximat."); hiHaErrors = true;
@@ -220,6 +260,7 @@ async function envia(ev) {
     commutaOnline();
     document.getElementById("subdepartament").innerHTML = "";
     document.getElementById("subdepartament").disabled = true;
+    omplerPartides();
     banner("ok", "Sol·licitud registrada amb el codi <span class='id'>" +
       escapa(res.id_compra) + "</span>. Quan tinguis la factura, " +
       "<a href='factura.html?compra=" + encodeURIComponent(res.id_compra) + "'>puja-la aquí</a>.");

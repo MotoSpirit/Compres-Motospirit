@@ -83,6 +83,11 @@ function pinta(sols) {
         escapa(s.departament) + " / " + escapa(s.subdepartament) + "</div>" +
       "<div>" +
         '<span class="tag">~' + escapa(s.import_aprox) + " €</span> " +
+        (s.partida
+          ? '<span class="tag' +
+            (s.partida.indexOf("Cas especial") === 0 ? " urgent" : "") + '">' +
+            escapa(s.partida) + "</span> "
+          : "") +
         (typeof s.disponible === "number"
           ? '<span class="tag' + (s.supera ? " urgent" : "") + '">Partida: ' +
             escapa(s.disponible.toFixed(2)) + " € disponibles</span> "
