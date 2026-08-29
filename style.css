@@ -253,6 +253,9 @@ button.small { padding: 7px 12px; font-size: 14px; }
 
 .hidden { display: none !important; }
 
+/* Guanya a .hidden: el link d'aprovacions surt sempre que el rol ho permeti. */
+body.es-responsable #nav-aprov { display: inline !important; }
+
 #gate { text-align: center; padding: 40px 20px; }
 #gate p { color: var(--muted); }
 

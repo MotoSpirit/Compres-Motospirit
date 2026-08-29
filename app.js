@@ -21,6 +21,7 @@ function inicialitzaLogin(onLogin) {
     SESSIO = desada;
     obreContingut();
     onLogin(SESSIO);
+    mostraNavegacio();
     if (Date.now() - (desada.verificat || 0) > REVALIDA_CADA) revalida();
     return;
   }
@@ -128,10 +129,16 @@ function obreContingut() {
   document.getElementById("gate").classList.add("hidden");
   document.getElementById("contingut").classList.remove("hidden");
   pintaWhoami();
-  if (SESSIO && SESSIO.rol === "responsable") {
-    const nav = document.getElementById("nav-aprov");
-    if (nav) nav.classList.remove("hidden");
-  }
+  mostraNavegacio();
+}
+
+// El rol marca el <body> i el CSS ensenya el link d'aprovacions. Es fa així
+// perquè no depengui de l'ordre en què s'executin les coses a cada pàgina.
+function mostraNavegacio() {
+  if (!SESSIO || SESSIO.rol !== "responsable") return;
+  document.body.classList.add("es-responsable");
+  const nav = document.getElementById("nav-aprov");
+  if (nav) nav.classList.remove("hidden");
 }
 
 function pintaWhoami() {
