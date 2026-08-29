@@ -55,6 +55,7 @@
           <span class="hint">A quina partida del subdepartament correspon.</span>
         </label>
         <select id="partida" required></select>
+        <div class="hint hidden" id="avis-partida" style="color:var(--warn);font-size:13px;margin-top:6px"></div>
         <div class="err" id="e-partida"></div>
       </div>
 
@@ -162,8 +163,20 @@ async function preparaFormulari(sessio) {
   apiCachejat("desglos", {}, (dades) => {
     DESGLOS = dades;
     omplerPartides();
-  }).catch(() => { DESGLOS = []; omplerPartides(); });
+  }).catch((e) => {
+    DESGLOS = [];
+    omplerPartides();
+    const avis = document.getElementById("avis-partida");
+    avis.textContent = "No s'han pogut carregar les partides: " + e.message;
+    avis.classList.remove("hidden");
+  });
 }
+
+// Les dues especials han d'existir sempre, encara que el config.js sigui antic.
+const OPCIO_SENSE = typeof PARTIDA_SENSE !== "undefined"
+  ? PARTIDA_SENSE : "No correspon a cap partida";
+const OPCIO_ESPECIAL = typeof PARTIDA_ESPECIAL !== "undefined"
+  ? PARTIDA_ESPECIAL : "Cas especial - contactar amb el responsable";
 
 function omplerPartides() {
   const sel = document.getElementById("partida");
@@ -171,7 +184,7 @@ function omplerPartides() {
   const dep = document.getElementById("departament").value;
   const sub = document.getElementById("subdepartament").value;
 
-  const propies = DESGLOS
+  const propies = (DESGLOS || [])
     .filter((p) => p.departament === dep && p.subdepartament === sub)
     .map((p) => p.partida);
 
@@ -181,10 +194,22 @@ function omplerPartides() {
   });
   sel.insertAdjacentHTML("beforeend",
     '<option disabled>──────────</option>' +
-    "<option>" + escapa(PARTIDA_SENSE) + "</option>" +
-    "<option>" + escapa(PARTIDA_ESPECIAL) + "</option>"
+    "<option>" + escapa(OPCIO_SENSE) + "</option>" +
+    "<option>" + escapa(OPCIO_ESPECIAL) + "</option>"
   );
   if (previ) sel.value = previ;
+
+  // Si el subdepartament no té partides definides, val més dir-ho que deixar
+  // l'usuari mirant un desplegable amb només les dues especials.
+  const avis = document.getElementById("avis-partida");
+  if (sub && !propies.length) {
+    avis.textContent = DESGLOS && DESGLOS.length
+      ? "Aquest subdepartament encara no té partides al full «Desglos»."
+      : "No s'ha pogut llegir el desglossament del pressupost.";
+    avis.classList.remove("hidden");
+  } else {
+    avis.classList.add("hidden");
+  }
 }
 
 function pintaSaldo() {
